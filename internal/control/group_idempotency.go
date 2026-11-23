@@ -117,7 +117,7 @@ func (s *Service) CreateGroupIdempotent(
 					)
 				}
 			}
-			name, err := resolveGroupCreateName(tx, normalized.explicitName, normalized.defaultName)
+			name, err := resolveGroupCreateName(tx, normalized.channelID, normalized.explicitName, normalized.defaultName)
 			if err != nil {
 				return idempotentMutationResult{}, err
 			}

@@ -178,6 +178,10 @@ func validateInitialSchemaAfter0003(db *gorm.DB) error {
 			}
 		}
 		for _, index := range definition.indexes {
+			// 0033 以 (channel_id, name) 复合唯一索引取代全局分组名索引。
+			if groupNameIndexRetired0033(db, definition.table, index) {
+				continue
+			}
 			if !db.Migrator().HasIndex(definition.model, index) {
 				return fmt.Errorf(
 					"validate current initial schema: index %q on %q is missing",

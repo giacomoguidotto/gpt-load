@@ -13,8 +13,8 @@ import (
 type Group struct {
 	PriceMultiplierMicros *int64         `gorm:"column:price_multiplier_micros;type:bigint;not null;default:1000000;check:chk_group_price_multiplier,price_multiplier_micros >= 0 AND price_multiplier_micros <= 1000000000"`
 	ID                    uint           `gorm:"primaryKey;autoIncrement"`
-	Name                  string         `gorm:"type:varchar(255);not null;uniqueIndex"`
-	ChannelID             string         `gorm:"type:varchar(64);not null"`
+	Name                  string         `gorm:"type:varchar(255);not null;uniqueIndex:idx_groups_channel_name,priority:2"`
+	ChannelID             string         `gorm:"type:varchar(64);not null;uniqueIndex:idx_groups_channel_name,priority:1"`
 	ConnectionType        ConnectionType `gorm:"type:varchar(32);not null;default:'api_key';check:chk_group_connection_type,connection_type IN ('api_key','subscription')"`
 	Params                JSON           `gorm:"type:json;not null"`
 	Models                JSON           `gorm:"type:json;not null"`

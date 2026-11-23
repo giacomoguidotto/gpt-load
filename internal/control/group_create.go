@@ -102,7 +102,7 @@ func (s *Service) CreateGroup(ctx context.Context, request GroupCreateRequest) (
 			}
 		}
 
-		name, err := resolveGroupCreateName(tx, normalized.explicitName, normalized.defaultName)
+		name, err := resolveGroupCreateName(tx, normalized.channelID, normalized.explicitName, normalized.defaultName)
 		if err != nil {
 			return err
 		}
@@ -406,7 +406,14 @@ func findGroupsByTarget(
 	return groups, nil
 }
 
-func resolveGroupCreateName(tx *gorm.DB, explicit *string, hostname string) (string, error) {
+// resolveGroupCreateName 在未指定名称时按主机名生成同渠道内未占用的名称；
+// 分组名只要求在同一渠道内唯一。
+func resolveGroupCreateName(
+	tx *gorm.DB,
+	channelID channel.ID,
+	explicit *string,
+	hostname string,
+) (string, error) {
 	if explicit != nil {
 		return *explicit, nil
 	}
@@ -416,7 +423,7 @@ func resolveGroupCreateName(tx *gorm.DB, explicit *string, hostname string) (str
 			candidate = fmt.Sprintf("%s-%d", hostname, suffix)
 		}
 		var count int64
-		if err := tx.Model(&models.Group{}).Where("name = ?", candidate).Count(&count).Error; err != nil {
+		if err := tx.Model(&models.Group{}).Where("channel_id = ? AND name = ?", string(channelID), candidate).Count(&count).Error; err != nil {
 			return "", app_errors.ParseDBError(err)
 		}
 		if count == 0 {

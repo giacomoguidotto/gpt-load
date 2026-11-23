@@ -1278,7 +1278,8 @@ func serviceErrorMessageID(
 		if operation == "create_access_key" || operation == "update_access_key" {
 			return "access_key.exists"
 		}
-		if operation == "create_group" || operation == "update_group_settings" {
+		if operation == "create_group" || operation == "update_group_settings" ||
+			operation == "update_group_channel" {
 			return "group.name_exists"
 		}
 		return "bad_request"
