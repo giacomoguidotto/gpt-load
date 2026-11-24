@@ -65,7 +65,7 @@ func createAccessKeyGroupsObservation(t *testing.T, fixture serviceFixture, cred
 	resetAtMS := observedAt.Add(5 * time.Hour).UnixMilli()
 	snapshot, err := json.Marshal(CredentialObservationSnapshot{
 		Plan:    ObservationPlanSummary{Name: "pro", Level: "premium"},
-		Account: &ObservationAccountSummary{DisplayName: "Allowed", Email: "allowed-dev@example.com"},
+		Account: &ObservationAccountSummary{DisplayName: "Allowed Person", Email: "allowed-dev@example.com", OrganizationName: "allowed-dev@example.com's Organization"},
 		QuotaWindows: []ObservationQuotaWindow{{
 			ID: "five-hour", Label: "5h", Scope: "account", Unit: "ratio",
 			Remaining: &remaining, ResetAtMS: &resetAtMS, State: "available",
@@ -210,7 +210,7 @@ func TestAccessKeyCredentialResponsesContainNoSecretFields(t *testing.T) {
 				t.Fatalf("GET %s exposed field %q to an access key", path, key)
 			}
 		}
-		for _, secret := range []string{accessKeyGroupsAPISecret, "allowed-dev@example.com"} {
+		for _, secret := range []string{accessKeyGroupsAPISecret, "allowed-dev@example.com", "Allowed Person"} {
 			if strings.Contains(body, secret) {
 				t.Fatalf("GET %s exposed %q to an access key", path, secret)
 			}

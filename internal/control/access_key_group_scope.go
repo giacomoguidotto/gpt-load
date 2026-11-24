@@ -92,6 +92,9 @@ func redactObservationForAccessKey(observation CredentialObservationResponse) Cr
 	snapshot := *observation.Snapshot
 	account := *snapshot.Account
 	account.Email = ""
+	// Claude 默认组织名形如 "<email>'s Organization"，显示名也可能是真实姓名，一并清空。
+	account.DisplayName = ""
+	account.OrganizationName = ""
 	snapshot.Account = &account
 	observation.Snapshot = &snapshot
 	return observation
