@@ -29,8 +29,9 @@ const props = defineProps<{
   testState?: CredentialBatchTestItem
   error?: string
   resolveSecret: () => Promise<string>
-  saveName: (name: string) => Promise<void>
+  saveName?: (name: string) => Promise<void>
   savePriority?: (value: number) => Promise<void>
+  readOnly?: boolean
 }>()
 defineEmits<{
   select: [value: boolean]
@@ -106,7 +107,7 @@ const issues = computed(() =>
     compact
   >
     <template #heading>
-      <AppTooltip :label="t('groupDetail.selectCredential', { name: row.label })"
+      <AppTooltip v-if="!readOnly" :label="t('groupDetail.selectCredential', { name: row.label })"
         ><AppCheckbox
           :model-value="selected"
           :label="t('groupDetail.selectCredential', { name: row.label })"
@@ -119,10 +120,10 @@ const issues = computed(() =>
           :key="row.secretVersion"
           :name="row.name"
           detail
-          copy
+          :copy="!readOnly"
           :copy-label="t('credentialCards.copyKey')"
           :value="row.mask"
-          :resolve-value="resolveSecret"
+          :resolve-value="readOnly ? undefined : resolveSecret"
           :save-name="saveName"
           :disabled="disabled"
           @dirty="$emit('nameDirty', $event)"
@@ -190,12 +191,13 @@ const issues = computed(() =>
         <CredentialCardActions
           :row="row"
           :disabled="disabled"
+          :read-only="readOnly"
           @action="$emit('action', $event)"
         /><AppSwitch
           size="xxs"
           :model-value="row.enabled"
           :label="t('groups.edit.enabled')"
-          :disabled="disabled"
+          :disabled="disabled || readOnly"
           @update:model-value="$emit('toggle', $event)"
         /></div
     ></template>

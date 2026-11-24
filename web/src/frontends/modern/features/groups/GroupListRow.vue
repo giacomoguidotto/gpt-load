@@ -26,6 +26,7 @@ import { useApiClient } from '@shared/http/client-context'
 
 const props = defineProps<{
   mobile?: boolean
+  readOnly?: boolean
   group: GroupRow
   expanded: boolean
   pending?: 'toggle' | 'priority' | 'weight'
@@ -86,9 +87,16 @@ const allModels = computed({
 })
 const models = useQuery(
   computed(() => ({
-    queryKey: ['modern', 'group-model-names', props.group.id],
+    queryKey: [
+      'modern',
+      props.readOnly ? 'group-model-names-listed' : 'group-model-names',
+      props.group.id,
+    ],
+    // 只读会话无法读取分组模型配置，使用列表已返回的模型名。
     queryFn: ({ signal }: { signal: AbortSignal }) =>
-      getGroupModelNames(client, props.group.id, signal),
+      props.readOnly
+        ? Promise.resolve([...new Set(props.group.modelNames)])
+        : getGroupModelNames(client, props.group.id, signal),
     enabled: props.expanded,
   })),
 )
@@ -231,7 +239,9 @@ const lastActive = computed(() =>
               :display="host"
               :label="t('groups.copyURL')"
             />
-            <span v-else>{{ t('groups.defaultEndpoint') }}</span>
+            <span v-else>{{
+              t(readOnly ? 'groups.endpointHidden' : 'groups.defaultEndpoint')
+            }}</span>
           </div>
         </div>
       </div>
@@ -239,7 +249,7 @@ const lastActive = computed(() =>
         <span class="modern-group-mobile-label">{{ t('groups.board.credentials') }}</span>
         <div class="modern-group-credential-heading">
           <strong>{{ n(group.credentials.total) }}</strong>
-          <AppTooltip :label="addCredentialsLabel">
+          <AppTooltip v-if="!readOnly" :label="addCredentialsLabel">
             <AppButton
               :aria-label="addCredentialsLabel"
               size="xs"
@@ -331,12 +341,14 @@ const lastActive = computed(() =>
             :model-value="enabledOverride ?? group.enabled"
             :label="t('groups.toggle', { name: group.name })"
             :loading="pending === 'toggle'"
-            :disabled="Boolean(pending)"
+            :disabled="Boolean(pending) || readOnly"
             @update:model-value="emit('toggle', $event)"
           />
         </div>
         <div class="modern-group-setting" :data-label="t('groups.edit.priority')">
+          <span v-if="readOnly" class="modern-group-readonly-value">{{ n(group.priority) }}</span>
           <AppInlineNumber
+            v-else
             :model-value="group.priority"
             :label="t('groups.edit.priority')"
             :min="-2147483648"
@@ -351,7 +363,9 @@ const lastActive = computed(() =>
           />
         </div>
         <div class="modern-group-setting" :data-label="t('groups.edit.weight')">
+          <span v-if="readOnly" class="modern-group-readonly-value">{{ n(group.weight) }}</span>
           <AppInlineNumber
+            v-else
             :model-value="group.weight"
             :label="t('groups.edit.weight')"
             :min="1"
@@ -399,6 +413,12 @@ const lastActive = computed(() =>
 </template>
 
 <style scoped>
+.modern-group-readonly-value {
+  display: inline-flex;
+  min-width: var(--modern-inline-number-width);
+  justify-content: flex-end;
+  font-variant-numeric: tabular-nums;
+}
 .modern-group-mobile {
   display: flex;
   align-items: flex-start;

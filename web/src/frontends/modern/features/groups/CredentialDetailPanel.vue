@@ -39,7 +39,12 @@ import CredentialWindowUsage from './CredentialWindowUsage.vue'
 const isMobile = useMobileLayout()
 const mobileSection = ref('runtime')
 const settingsSection = ref<HTMLElement>()
-const props = defineProps<{ group: GroupRow; row: CredentialRow; channel?: GroupChannel }>()
+const props = defineProps<{
+  group: GroupRow
+  row: CredentialRow
+  channel?: GroupChannel
+  readOnly?: boolean
+}>()
 const emit = defineEmits<{ close: []; saved: [row: CredentialRow] }>()
 const { t, n, locale, te } = useI18n()
 const client = useApiClient()
@@ -117,7 +122,7 @@ function failure(): string {
     .join(' · ')
 }
 async function save(): Promise<void> {
-  if (!saved.value || !dirty.value || saving.value) return
+  if (props.readOnly || !saved.value || !dirty.value || saving.value) return
   attempted.value = true
   if (weightInvalid.value || priorityInvalid.value || proxyInvalid.value) {
     if (isMobile.value) {
@@ -198,6 +203,7 @@ useMessageSource(() =>
     hide-description
     :dirty="dirty"
     :pending="saving || namePending"
+    :read-only="readOnly"
     :loading="query.isFetching.value"
     :save-disabled="!saved || nameDirty"
     @close="emit('close')"
@@ -210,7 +216,9 @@ useMessageSource(() =>
           :label="t('groupDetail.credentialDetails')"
           :options="[
             { value: 'runtime', label: t('credentialCards.runtime') },
-            { value: 'usage', label: t('credentialCards.trends') },
+            ...(readOnly && !item.observation?.windows.length
+              ? []
+              : [{ value: 'usage', label: t('credentialCards.trends') }]),
             { value: 'settings', label: t('credentialCards.settings') },
           ]"
         /></div
@@ -229,13 +237,14 @@ useMessageSource(() =>
         :subscription="group.connectionType === 'subscription'"
         detail
         :reveal="group.connectionType === 'subscription'"
-        :save-name="saveName"
-        edit-button
+        :save-name="readOnly ? undefined : saveName"
+        :edit-button="!readOnly"
         :disabled="saving"
         @dirty="nameDirty = $event"
         @pending="namePending = $event"
       />
       <CredentialTrends
+        v-if="!readOnly"
         v-show="!isMobile || mobileSection === 'usage'"
         :subscription="group.connectionType === 'subscription'"
         :group="group.id"
@@ -248,6 +257,7 @@ useMessageSource(() =>
         :windows="item.observation.windows"
       />
       <RPMTrend
+        v-if="!readOnly"
         v-show="!isMobile || mobileSection === 'usage'"
         :scope="{ kind: 'credential', id: row.id, group: group.id }"
       />
@@ -349,46 +359,68 @@ useMessageSource(() =>
             </span>
           </AppTooltip>
         </div>
-        <AppTextField
-          v-model="weight"
-          :label="t('groups.edit.weight')"
-          :placeholder="t('credentialCards.automatic')"
-          size="sm"
-          inputmode="numeric"
-          :disabled="saving"
-          :error="attempted && weightInvalid ? t('groups.edit.weightError') : undefined"
-        />
-        <AppTextField
-          v-model="priority"
-          :label="t('credentialCards.priority')"
-          :hint="t('credentialCards.priorityHelp')"
-          size="sm"
-          inputmode="numeric"
-          :disabled="saving"
-          :error="attempted && priorityInvalid ? t('groups.edit.priorityError') : undefined"
-        />
-        <AppFormSection v-if="channel?.proxy" compact :title="t('groupCreate.proxy')">
-          <template #actions>
-            <AppSegmentedControl
-              v-model="proxyMode"
-              :label="t('groupCreate.proxy')"
-              :options="proxyOptions"
-              appearance="field"
-              size="xs"
-              :disabled="saving"
-            />
-          </template>
-          <ProxySelect
-            v-if="proxyMode === 'custom'"
-            v-model="proxyID"
-            :saved-id="saved?.proxy.id"
-            :saved-name="saved?.proxy.name"
-            :saved-address="saved?.proxy.display"
-            :reference-state="saved?.proxy.referenceState"
+        <dl v-if="readOnly" class="modern-credential-detail-metrics">
+          <div>
+            <dt>{{ t('groups.edit.weight') }}</dt>
+            <dd>
+              {{
+                item.weightManual == null
+                  ? `${n(item.weight)} · ${t('credentialCards.automatic')}`
+                  : n(item.weightManual)
+              }}
+            </dd>
+          </div>
+          <div>
+            <dt>{{ t('credentialCards.priority') }}</dt>
+            <dd>{{ n(item.priority) }}</dd>
+          </div>
+          <div v-if="channel?.proxy">
+            <dt>{{ t('groupCreate.proxy') }}</dt>
+            <dd>{{ t('credentialCards.proxyMode.' + item.proxy.mode) }}</dd>
+          </div>
+        </dl>
+        <template v-else>
+          <AppTextField
+            v-model="weight"
+            :label="t('groups.edit.weight')"
+            :placeholder="t('credentialCards.automatic')"
+            size="sm"
+            inputmode="numeric"
             :disabled="saving"
-            :error="attempted && proxyInvalid ? t('proxies.selectHelp') : undefined"
+            :error="attempted && weightInvalid ? t('groups.edit.weightError') : undefined"
           />
-        </AppFormSection>
+          <AppTextField
+            v-model="priority"
+            :label="t('credentialCards.priority')"
+            :hint="t('credentialCards.priorityHelp')"
+            size="sm"
+            inputmode="numeric"
+            :disabled="saving"
+            :error="attempted && priorityInvalid ? t('groups.edit.priorityError') : undefined"
+          />
+          <AppFormSection v-if="channel?.proxy" compact :title="t('groupCreate.proxy')">
+            <template #actions>
+              <AppSegmentedControl
+                v-model="proxyMode"
+                :label="t('groupCreate.proxy')"
+                :options="proxyOptions"
+                appearance="field"
+                size="xs"
+                :disabled="saving"
+              />
+            </template>
+            <ProxySelect
+              v-if="proxyMode === 'custom'"
+              v-model="proxyID"
+              :saved-id="saved?.proxy.id"
+              :saved-name="saved?.proxy.name"
+              :saved-address="saved?.proxy.display"
+              :reference-state="saved?.proxy.referenceState"
+              :disabled="saving"
+              :error="attempted && proxyInvalid ? t('proxies.selectHelp') : undefined"
+            />
+          </AppFormSection>
+        </template>
       </section>
     </template>
   </GroupWorkspacePanel>

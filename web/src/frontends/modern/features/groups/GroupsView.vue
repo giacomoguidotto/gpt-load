@@ -32,6 +32,7 @@ import { useMobileLayout } from '@modern/app/use-mobile-layout'
 import { useMessageSource } from '@modern/app/messages'
 import { useURLState } from '@modern/app/url-state'
 import { usePageRefresh } from '@modern/app/page-refresh'
+import { useReadOnlySession } from '@modern/app/use-read-only'
 import { useLoadingFeedback } from '@modern/components/ui/loading'
 import {
   AppAdvancedFilters,
@@ -44,6 +45,7 @@ import {
   AppFilterSummary,
   AppListFrame,
   AppModelSelect,
+  AppNotice,
   AppIconButton,
   AppPagination,
   AppProtocolTag,
@@ -69,6 +71,7 @@ const mobileFilterCount = computed(
 )
 const client = useApiClient()
 const queryClient = useQueryClient()
+const readOnly = useReadOnlySession()
 const route = useRoute()
 const router = useRouter()
 const filters = computed(() => parseGroupFilters(route.query))
@@ -108,7 +111,7 @@ const expansion = useURLState(
 )
 const expanded = computed(() => new Set(expansion.value.ids))
 const creating = computed({
-  get: () => route.query.panel === 'create',
+  get: () => !readOnly.value && route.query.panel === 'create',
   set: (value) => {
     void setCreating(value)
   },
@@ -181,7 +184,9 @@ const groups = computed(() => data.value?.items ?? [])
 const credentialCatalog = useQuery({
   queryKey: credentialOptionsKey,
   queryFn: ({ signal }) => getCredentialOptions(client, signal),
-  enabled: computed(() => moreFilters.value || Boolean(filters.value.credential)),
+  enabled: computed(
+    () => !readOnly.value && (moreFilters.value || Boolean(filters.value.credential)),
+  ),
 })
 const selectedCredential = computed(() =>
   credentialCatalog.data.value?.find((option) => option.key === filters.value.credential),
@@ -317,7 +322,8 @@ const usage = useQuery(
     return {
       queryKey: ['modern', 'group-usage', ...ids],
       queryFn: ({ signal }: { signal: AbortSignal }) => getGroupUsage(client, ids, signal),
-      enabled: ids.length > 0,
+      // 分组用量汇总包含全部调用方，访问密钥只读视图不请求。
+      enabled: ids.length > 0 && !readOnly.value,
     }
   }),
 )
@@ -423,8 +429,10 @@ async function refresh(): Promise<void> {
     if (!controller.signal.aborted) {
       await Promise.all([
         channelCatalog.refetch(),
-        moreFilters.value || credentialFiltering.value ? credentialCatalog.refetch() : undefined,
-        usageIDs.value.length ? usage.refetch() : undefined,
+        !readOnly.value && (moreFilters.value || credentialFiltering.value)
+          ? credentialCatalog.refetch()
+          : undefined,
+        usageIDs.value.length && !readOnly.value ? usage.refetch() : undefined,
         queryClient.invalidateQueries({
           queryKey: ['modern', 'group-model-names'],
           refetchType: 'active',
@@ -804,6 +812,7 @@ useMessageSource(() =>
               "
             />
             <AppSearchSelect
+              v-if="!readOnly"
               :model-value="filters.credential"
               :label="t('groups.board.credentials')"
               :placeholder="t('groups.board.searchCredentials')"
@@ -856,6 +865,7 @@ useMessageSource(() =>
           @update:model-value="updateFilters({ sort: $event as GroupFilters['sort'] })"
         />
         <AppButton
+          v-if="!readOnly"
           variant="primary"
           :icon="Plus"
           :icon-only="isMobile"
@@ -876,6 +886,7 @@ useMessageSource(() =>
           @update:model-value="updateFilters({ connection: $event as GroupFilters['connection'] })"
         />
         <AppSearchSelect
+          v-if="!readOnly"
           :model-value="filters.credential"
           :label="t('groups.board.credentials')"
           :placeholder="t('groups.board.searchCredentials')"
@@ -902,6 +913,7 @@ useMessageSource(() =>
         </AppSelect>
       </AppAdvancedFilterSection>
     </AppAdvancedFilters>
+    <AppNotice v-if="readOnly" inline tone="info">{{ t('groups.readOnlyNotice') }}</AppNotice>
     <div class="modern-groups-filterbar">
       <AppSegmentedControl
         :label="t('groups.statusFilter')"
@@ -998,6 +1010,7 @@ useMessageSource(() =>
           :key="group.id + ':' + rowRevision"
           :group="group"
           :mobile="isMobile"
+          :read-only="readOnly"
           :expanded="expanded.has(group.id)"
           :pending="pending.get(group.id)"
           :enabled-override="enabledOverrides.get(group.id)"
@@ -1031,7 +1044,7 @@ useMessageSource(() =>
       </template>
     </AppListFrame>
     <GroupCreatePanel
-      v-if="creating"
+      v-if="creating && !readOnly"
       :initial-channel="filters.channel"
       @close="closeCreate"
       @created="onCreated"

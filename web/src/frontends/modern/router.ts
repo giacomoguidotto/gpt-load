@@ -66,7 +66,7 @@ export function createModernRouter(
           primaryNav: 'modern-groups',
           titleKey: 'pages.groupDetail.title',
           requiresAuth: true,
-          adminOnly: true,
+          adminOnly: false,
         },
       },
       {

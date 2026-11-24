@@ -4,7 +4,12 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { CredentialRow } from '@modern/api/group-detail'
 import { AppActionMenu, AppIconButton } from '@modern/components/ui'
-const props = defineProps<{ row: CredentialRow; subscription?: boolean; disabled?: boolean }>()
+const props = defineProps<{
+  row: CredentialRow
+  subscription?: boolean
+  disabled?: boolean
+  readOnly?: boolean
+}>()
 defineEmits<{ action: [value: string] }>()
 const { t } = useI18n()
 const actions = computed(() => [
@@ -37,7 +42,7 @@ const actions = computed(() => [
       @click="$emit('action', 'details')"
     />
     <AppIconButton
-      v-if="!subscription"
+      v-if="!subscription && !readOnly"
       :icon="Stethoscope"
       :label="t('credentialCards.test')"
       size="xxs"
@@ -45,6 +50,7 @@ const actions = computed(() => [
       @click="$emit('action', 'test')"
     />
     <AppActionMenu
+      v-if="!readOnly"
       size="xxs"
       :label="t('credentialCards.more')"
       :items="actions"

@@ -81,6 +81,7 @@ import {
 import { useApiClient } from '@shared/http/client-context'
 import { useURLState, positivePage } from '@modern/app/url-state'
 import { useMessageSource } from '@modern/app/messages'
+import { useReadOnlySession } from '@modern/app/use-read-only'
 import AppDraftGuard from '@modern/components/AppDraftGuard.vue'
 
 const props = defineProps<{ group: GroupRow; visible?: boolean; channel?: GroupChannel }>()
@@ -98,6 +99,7 @@ const mobileFilters = ref(false)
 const { t, n } = useI18n()
 const client = useApiClient()
 const cache = useQueryClient()
+const readOnly = useReadOnlySession()
 const route = useRoute()
 const router = useRouter()
 const filterKeys = ['q', 'status', 'page', 'page_size', 'sort', 'proxy', 'reset', 'credential_key']
@@ -164,7 +166,7 @@ const detail = computed({
 })
 const testing = computed({
   get: () =>
-    credentialView.value.id && credentialView.value.mode === 'test'
+    !readOnly.value && credentialView.value.id && credentialView.value.mode === 'test'
       ? credentialQuery.data.value
       : undefined,
   set: (row: CredentialRow | undefined) => {
@@ -581,7 +583,7 @@ async function changed(): Promise<void> {
   emit('changed')
 }
 async function toggle(row: CredentialRow, value: boolean): Promise<void> {
-  if (busy.value || syncPending(row.id)) return
+  if (readOnly.value || busy.value || syncPending(row.id)) return
   if (!accountBatchPending.value) accountBatch.value = undefined
   mutating.value = row.id
   pendingAction.value = 'toggle'
@@ -835,6 +837,8 @@ async function saveName(row: CredentialRow, name: string): Promise<void> {
 }
 async function action(row: CredentialRow, value: string): Promise<void> {
   if (busy.value || syncPending(row.id)) return
+  // 只读会话只能打开详情；其余动作都需要管理员权限。
+  if (readOnly.value && value !== 'details') return
   if (value === 'quota') {
     if (!props.channel?.quotaObservation || row.authState !== 'ready') return
     if (!accountBatchPending.value) accountBatch.value = undefined
@@ -1082,6 +1086,7 @@ defineExpose({ refresh })
           @update:model-value="change({ sort: $event as CredentialFilters['sort'], page: 1 })"
         />
         <AppButton
+          v-if="!readOnly"
           :icon="Plus"
           :icon-only="isMobile"
           :aria-label="
@@ -1126,7 +1131,7 @@ defineExpose({ refresh })
       :loading="query.isFetching.value"
     >
       <template #header>
-        <div class="modern-credentials-selection">
+        <div v-if="!readOnly" class="modern-credentials-selection">
           <div class="modern-credentials-selected-actions">
             <AppCheckbox
               :model-value="allSelected"
@@ -1290,8 +1295,9 @@ defineExpose({ refresh })
             :sync-succeeded="syncSucceeded.has(row.id)"
             :disabled="busy || syncPending(row.id)"
             :error="cardErrors.get(row.id)"
-            :save-name="(name) => saveName(row, name)"
-            :save-priority="(value) => savePriority(row, value)"
+            :read-only="readOnly"
+            :save-name="readOnly ? undefined : (name) => saveName(row, name)"
+            :save-priority="readOnly ? undefined : (value) => savePriority(row, value)"
             @name-dirty="nameDirty(row.id, $event)"
             @priority-dirty="priorityDirty(row.id, $event)"
             @select="select(row.id, $event)"
@@ -1307,8 +1313,9 @@ defineExpose({ refresh })
             :disabled="busy"
             :error="cardErrors.get(row.id)"
             :resolve-secret="copySecret(row.id)"
-            :save-name="(name) => saveName(row, name)"
-            :save-priority="(value) => savePriority(row, value)"
+            :read-only="readOnly"
+            :save-name="readOnly ? undefined : (name) => saveName(row, name)"
+            :save-priority="readOnly ? undefined : (value) => savePriority(row, value)"
             @name-dirty="nameDirty(row.id, $event)"
             @priority-dirty="priorityDirty(row.id, $event)"
             @select="select(row.id, $event)"
@@ -1386,6 +1393,7 @@ defineExpose({ refresh })
   <CredentialDetailPanel
     v-if="detail"
     :key="detail.id"
+    :read-only="readOnly"
     :group="group"
     :row="detail"
     :channel="channel"

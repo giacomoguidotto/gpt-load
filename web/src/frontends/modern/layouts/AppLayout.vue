@@ -86,16 +86,7 @@ const mobileOpen = ref(false)
 const isMobile = useMobileLayout()
 const navigation = useNavigation()
 const moreNavigation = computed(() =>
-  navigation.value.filter(
-    (item) =>
-      ![
-        'home',
-        'groups',
-        'logs',
-        'usage',
-        ...(session.state.principalType === 'access_key' ? ['models'] : []),
-      ].includes(item.id),
-  ),
+  navigation.value.filter((item) => !['home', 'groups', 'logs', 'usage'].includes(item.id)),
 )
 const failedNavigation = ref<string | null>(null)
 const loggingOut = ref(false)

@@ -17,6 +17,7 @@ import {
 import { getGroupUsage, getGroupWorkspace, groupQueryKey } from '@modern/api/groups'
 import { getGroupUsageTrend } from '@modern/api/group-usage-trend'
 import { usePageRefresh } from '@modern/app/page-refresh'
+import { useReadOnlySession } from '@modern/app/use-read-only'
 import {
   AppSegmentedControl,
   AppBadge,
@@ -43,6 +44,7 @@ const { t, n } = useI18n()
 const client = useApiClient()
 const cache = useQueryClient()
 const isMobile = useMobileLayout()
+const readOnly = useReadOnlySession()
 const workspace = ref<HTMLElement>()
 const compactLayout = ref(isMobile.value)
 // 按内容区宽度切换，收起导航栏或调整桌面窗口后也能访问全部设置。
@@ -61,7 +63,9 @@ onScopeDispose(() => workspaceObserver.disconnect())
 const mobileView = useURLState(
   ['mobile_view'],
   (query) => ({
-    tab: ['overview', 'settings'].includes(String(query.mobile_view))
+    tab: (readOnly.value ? ['overview'] : ['overview', 'settings']).includes(
+      String(query.mobile_view),
+    )
       ? String(query.mobile_view)
       : 'credentials',
   }),
@@ -93,14 +97,15 @@ const models = useQuery(
   computed(() => ({
     queryKey: groupModelsKey(id.value),
     queryFn: ({ signal }: { signal: AbortSignal }) => getGroupModels(client, id.value, signal),
-    enabled: Boolean(group.value),
+    enabled: Boolean(group.value) && !readOnly.value,
   })),
 )
 const usage = useQuery(
   computed(() => ({
     queryKey: ['modern', 'group-overview-usage', id.value],
     queryFn: ({ signal }: { signal: AbortSignal }) => getGroupUsage(client, [id.value], signal),
-    enabled: Boolean(group.value),
+    // 分组用量汇总包含全部调用方，访问密钥只读视图不请求。
+    enabled: Boolean(group.value) && !readOnly.value,
   })),
 )
 const groupUsage = computed(() => usage.data.value?.items.find((item) => item.id === id.value))
@@ -108,7 +113,7 @@ const trend = useQuery(
   computed(() => ({
     queryKey: ['modern', 'group-usage-trend', id.value],
     queryFn: ({ signal }: { signal: AbortSignal }) => getGroupUsageTrend(client, id.value, signal),
-    enabled: Boolean(group.value),
+    enabled: Boolean(group.value) && !readOnly.value,
   })),
 )
 const credentials = ref<InstanceType<typeof GroupCredentials>>()
@@ -122,7 +127,7 @@ let panelUpdate: ReturnType<typeof router.replace> | undefined
 let panelTarget: string | undefined
 const panel = computed({
   get: () =>
-    ['models', 'advanced', 'add'].includes(String(route.query.panel))
+    !readOnly.value && ['models', 'advanced', 'add'].includes(String(route.query.panel))
       ? (route.query.panel as 'models' | 'advanced' | 'add')
       : undefined,
   set: (value) => {
@@ -162,15 +167,14 @@ const returnTo = computed(() => {
   return typeof from === 'string' && /^\/groups(?:\?|$)/u.test(from) ? from : '/groups'
 })
 async function refreshUsage(): Promise<void> {
+  if (readOnly.value) return
   await Promise.all([usage.refetch(), trend.refetch()])
 }
 async function refresh(): Promise<void> {
   await Promise.all([
     groups.refetch(),
     channels.refetch(),
-    models.refetch(),
-    usage.refetch(),
-    trend.refetch(),
+    ...(readOnly.value ? [] : [models.refetch(), usage.refetch(), trend.refetch()]),
     credentials.value?.refresh(),
     basics.value?.refresh(),
   ])
@@ -278,6 +282,7 @@ useMessageSource(() =>
       :class="{
         'is-compact': compactLayout,
         'is-settings': compactLayout && mobileTab === 'settings',
+        'is-read-only': readOnly,
       }"
     >
       <div class="modern-group-workspace-main">
@@ -343,11 +348,11 @@ useMessageSource(() =>
           :options="[
             { value: 'credentials', label: t('groupDetail.credentials') },
             { value: 'overview', label: t('groupDetail.overview') },
-            { value: 'settings', label: t('groupDetail.settings') },
+            ...(readOnly ? [] : [{ value: 'settings', label: t('groupDetail.settings') }]),
           ]"
         />
         <GroupOverview
-          v-if="compactLayout && mobileTab === 'overview'"
+          v-if="compactLayout && mobileTab === 'overview' && !readOnly"
           class="modern-group-workspace-overview"
           :group="group"
           :usage="groupUsage"
@@ -370,6 +375,7 @@ useMessageSource(() =>
         />
       </div>
       <aside
+        v-if="!readOnly"
         v-show="!compactLayout || mobileTab === 'settings'"
         class="modern-group-workspace-sidebar"
         :aria-label="t('groupDetail.settings')"
@@ -459,6 +465,9 @@ useMessageSource(() =>
   min-width: 0;
   grid-template-columns: minmax(0, 1fr) var(--modern-context-sidebar);
   gap: var(--modern-space-5);
+}
+.modern-group-workspace-layout.is-read-only {
+  grid-template-columns: minmax(0, 1fr);
 }
 .modern-group-workspace-main {
   display: flex;

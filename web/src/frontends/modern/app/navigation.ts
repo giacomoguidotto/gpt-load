@@ -36,7 +36,7 @@ export const navigationItems = [
     path: pagePath('groups'),
     section: 'workspace',
     icon: Layers2,
-    adminOnly: true,
+    adminOnly: false,
   },
   {
     id: 'models',

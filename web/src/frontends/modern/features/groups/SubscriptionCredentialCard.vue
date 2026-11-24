@@ -35,8 +35,9 @@ const props = defineProps<{
   pendingAction?: string
   syncSucceeded?: boolean
   error?: string
-  saveName: (name: string) => Promise<void>
+  saveName?: (name: string) => Promise<void>
   savePriority?: (value: number) => Promise<void>
+  readOnly?: boolean
 }>()
 defineEmits<{
   select: [value: boolean]
@@ -125,7 +126,10 @@ useLoadingActivity(() => Boolean(props.pending))
   >
     <header class="modern-subscription-card-heading">
       <div class="modern-subscription-card-name-line">
-        <AppTooltip :label="t('groupDetail.selectCredential', { name: row.label })">
+        <AppTooltip
+          v-if="!readOnly"
+          :label="t('groupDetail.selectCredential', { name: row.label })"
+        >
           <AppCheckbox
             class="modern-subscription-card-select"
             :model-value="selected"
@@ -148,7 +152,7 @@ useLoadingActivity(() => Boolean(props.pending))
         />
         <div class="modern-subscription-card-status-actions">
           <AppIconButton
-            v-if="channel?.quotaObservation"
+            v-if="channel?.quotaObservation && !readOnly"
             class="modern-subscription-card-sync"
             :class="{ 'is-succeeded': syncSucceeded }"
             :icon="syncIcon"
@@ -238,7 +242,7 @@ useLoadingActivity(() => Boolean(props.pending))
               >{{ t('credentialCards.observation.' + observation.state) }}</span
             >
             <AppButton
-              v-if="channel?.quotaObservation"
+              v-if="channel?.quotaObservation && !readOnly"
               class="modern-subscription-card-sync"
               :class="{ 'is-succeeded': syncSucceeded }"
               size="xxs"
@@ -299,7 +303,10 @@ useLoadingActivity(() => Boolean(props.pending))
         </AppTooltip>
       </div>
       <div class="modern-subscription-card-actions">
-        <AppTooltip v-if="channel?.resetCredit && observation?.resetCredits" :label="creditLabel">
+        <AppTooltip
+          v-if="channel?.resetCredit && observation?.resetCredits && !readOnly"
+          :label="creditLabel"
+        >
           <AppButton
             class="modern-subscription-card-reset"
             :icon="Ticket"
@@ -320,13 +327,14 @@ useLoadingActivity(() => Boolean(props.pending))
           :row="row"
           subscription
           :disabled="disabled"
+          :read-only="readOnly"
           @action="$emit('action', $event)"
         />
         <AppSwitch
           size="xxs"
           :model-value="row.enabled"
           :label="t('groups.edit.enabled')"
-          :disabled="disabled"
+          :disabled="disabled || readOnly"
           @update:model-value="$emit('toggle', $event)"
         />
       </div>

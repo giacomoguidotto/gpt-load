@@ -71,6 +71,8 @@ export const zhCN = {
     credentials: { available: '可用', cooldown: '冷却', blacklisted: '隔离', disabled: '停用' },
     modelCooldown: '{count} 个凭据有模型冷却',
     defaultEndpoint: '渠道默认地址',
+    endpointHidden: '上游地址仅管理员可见',
+    readOnlyNotice: '只读视图：仅显示此访问密钥可使用的分组，不能修改配置。',
     copyURL: '复制上游地址',
     copied: '上游地址已复制',
     copyFailed: '复制失败，请手动复制上游地址。',
@@ -190,6 +192,9 @@ export const enUS: typeof zhCN = {
     },
     modelCooldown: '{count} with model cooldowns',
     defaultEndpoint: 'Channel default URL',
+    endpointHidden: 'Upstream URL visible to admins only',
+    readOnlyNotice:
+      'Read-only view: showing only the groups this access key can use. Settings cannot be changed.',
     copyURL: 'Copy upstream URL',
     copied: 'Upstream URL copied',
     copyFailed: 'Copy failed. Please copy the upstream URL manually.',
@@ -304,6 +309,9 @@ export const jaJP: typeof zhCN = {
     },
     modelCooldown: '{count} 件にモデルの待機あり',
     defaultEndpoint: 'チャネルの既定 URL',
+    endpointHidden: '上流 URL は管理者のみ表示されます',
+    readOnlyNotice:
+      '読み取り専用：このアクセスキーで利用できるグループのみ表示し、設定は変更できません。',
     copyURL: '接続先 URL をコピー',
     copied: '接続先 URL をコピーしました',
     copyFailed: 'コピーに失敗しました。手動でコピーしてください。',

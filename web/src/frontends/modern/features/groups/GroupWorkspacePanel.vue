@@ -17,6 +17,7 @@ const props = defineProps<{
   saveLabel?: string
   wide?: boolean
   fill?: boolean
+  readOnly?: boolean
 }>()
 const emit = defineEmits<{ close: []; save: [] }>()
 const { t } = useI18n()
@@ -42,8 +43,11 @@ useLoadingActivity(() => Boolean(props.loading || props.pending))
       <footer class="modern-workspace-panel-footer">
         <div class="modern-workspace-panel-feedback"><slot name="feedback" /></div>
         <div class="modern-workspace-panel-actions">
-          <AppButton size="sm" :disabled="pending" @click="close">{{ t('ui.cancel') }}</AppButton>
+          <AppButton size="sm" :disabled="pending" @click="close">{{
+            t(readOnly ? 'shell.close' : 'ui.cancel')
+          }}</AppButton>
           <AppButton
+            v-if="!readOnly"
             type="submit"
             variant="primary"
             size="sm"
