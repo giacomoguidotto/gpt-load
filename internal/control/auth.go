@@ -61,6 +61,12 @@ var accessKeyControlRoutes = map[string]struct{}{
 	"/api/usage":            {},
 	"/api/logs":             {},
 	"/api/logs/:request_id": {},
+	// 分组只读视图：处理器按访问密钥的分组过滤限定范围，并对凭据做服务端脱敏。
+	"/api/channels":                                           {},
+	"/api/groups/:group_id":                                   {},
+	"/api/modern/groups":                                      {},
+	"/api/modern/groups/:group_id/credentials":                {},
+	"/api/modern/groups/:group_id/credentials/:credential_id": {},
 }
 
 func retryAfterSeconds(remaining time.Duration) int64 {

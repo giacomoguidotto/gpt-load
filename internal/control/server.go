@@ -370,10 +370,17 @@ func (s *Server) handleGetGroupSummary(c *gin.Context) {
 	if !ok {
 		return
 	}
+	scope, ok := s.authorizeAccessKeyGroup(c, "get_group_summary", id)
+	if !ok {
+		return
+	}
 	result, err := s.service.GetGroupSummary(c.Request.Context(), id)
 	if err != nil {
 		writeServiceError(c, "get_group_summary", err)
 		return
+	}
+	if scope != nil {
+		result = redactGroupSummaryForAccessKey(result)
 	}
 	response.SuccessI18n(c, "common.success", result)
 }

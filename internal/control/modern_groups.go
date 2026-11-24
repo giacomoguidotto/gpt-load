@@ -107,10 +107,24 @@ func (s *Server) handleListModernGroups(c *gin.Context) {
 		writeServiceError(c, "list_modern_groups", app_errors.ErrBadRequest)
 		return
 	}
+	scope, err := s.currentAccessKeyGroupScope(c)
+	if err != nil {
+		writeServiceError(c, "list_modern_groups", err)
+		return
+	}
 	result, err := s.service.ListModernGroups(c.Request.Context())
 	if err != nil {
 		writeServiceError(c, "list_modern_groups", err)
 		return
+	}
+	if scope != nil {
+		items := make([]ModernGroupItem, 0, len(result.Items))
+		for _, item := range result.Items {
+			if scope.allows(item.ID) {
+				items = append(items, redactModernGroupForAccessKey(item))
+			}
+		}
+		result.Items = items
 	}
 	c.Header("Cache-Control", "no-store")
 	response.SuccessI18n(c, "common.success", result)

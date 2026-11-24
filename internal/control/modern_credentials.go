@@ -151,6 +151,10 @@ func (s *Server) handleListModernCredentials(c *gin.Context) {
 	if !ok {
 		return
 	}
+	scope, ok := s.authorizeAccessKeyGroup(c, "list_modern_credentials", id)
+	if !ok {
+		return
+	}
 	query, apiErr := parseModernCredentialQuery(c.Request.URL.RawQuery)
 	if apiErr != nil {
 		writeServiceError(c, "list_modern_credentials", apiErr)
@@ -168,6 +172,9 @@ func (s *Server) handleListModernCredentials(c *gin.Context) {
 	}
 	s.service.enrichCredentialActivityIDs(c.Request.Context(), result.Items, ids)
 	for _, item := range result.Items {
+		if scope != nil {
+			item = redactCredentialItemForAccessKey(item)
+		}
 		items = append(items, ModernCredentialItem{CredentialItemResponse: item, WeightManual: item.WeightManual, RPMPeakHour: item.RPMPeakHour})
 	}
 	response.SuccessI18n(c, "common.success", struct {
@@ -178,6 +185,10 @@ func (s *Server) handleListModernCredentials(c *gin.Context) {
 
 func (s *Server) handleGetModernCredential(c *gin.Context) {
 	group, ok := groupID(c, "get_modern_credential")
+	if !ok {
+		return
+	}
+	scope, ok := s.authorizeAccessKeyGroup(c, "get_modern_credential", group)
 	if !ok {
 		return
 	}
@@ -195,6 +206,10 @@ func (s *Server) handleGetModernCredential(c *gin.Context) {
 		items := []CredentialItemResponse{result.Credential}
 		s.service.enrichCredentialActivityIDs(c.Request.Context(), items, []uint{id})
 		result.Credential = items[0]
+	}
+	if scope != nil {
+		result.Credential = redactCredentialItemForAccessKey(result.Credential)
+		result.Observation = redactObservationForAccessKey(result.Observation)
 	}
 	response.SuccessI18n(c, "common.success", struct {
 		Credential  ModernCredentialItem          `json:"credential"`
