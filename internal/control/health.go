@@ -165,6 +165,29 @@ func classifyHealthKey(
 	}
 }
 
+// presentHealthKey 在 classifyHealthKey 之上，把账号级额度已耗尽（剩余 0、重置时间在未来）
+// 的可用凭据展示为冷却到额度重置。调度器仍按模型冷却逐请求跳过它们；这里只修正管理面展示，
+// 否则所有模型都在冷却的分组会显示为「受限」而不是「不可用」。
+func presentHealthKey(
+	group state.GroupCatalogView,
+	key state.CredentialRuntimeView,
+	now time.Time,
+) (healthBucket, state.CredentialRuntimeView) {
+	bucket := classifyHealthKey(group, key, now)
+	if bucket != healthBucketAvailable || !quotaExhausted(key, now) {
+		return bucket, key
+	}
+	if key.QuotaResetAt.After(key.CooldownUntil) {
+		key.CooldownUntil = key.QuotaResetAt
+	}
+	return healthBucketCooldown, key
+}
+
+func quotaExhausted(key state.CredentialRuntimeView, now time.Time) bool {
+	remaining := key.ObservedQuotaRemaining()
+	return remaining != nil && *remaining <= 0 && key.QuotaResetAt.After(now)
+}
+
 func addHealthCount(counts *healthCountsResponse, bucket healthBucket) {
 	switch bucket {
 	case healthBucketAvailable:

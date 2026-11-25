@@ -399,7 +399,7 @@ func mapGroupCollectionRecords(
 			record.LastActiveHourRequestCount = activity.LastActiveHourRequestCount
 		}
 		for _, persistedCredential := range credentialsByGroup[group.ID] {
-			bucket := classifyHealthKey(catalog, runtimeByID[persistedCredential.ID], observedAt)
+			bucket, _ := presentHealthKey(catalog, runtimeByID[persistedCredential.ID], observedAt)
 			addGroupCollectionCredentialCount(&record.CredentialCounts, bucket)
 			if hasModelCooldown(runtimeByID[persistedCredential.ID].ModelCooldowns, observedAt) {
 				record.CredentialCounts.ModelCooldown++

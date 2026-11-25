@@ -436,7 +436,7 @@ func (s *Service) mapCredentialCollection(
 			return CredentialCollectionResponse{}, err
 		}
 		view := observation.runtime[row.ID]
-		bucket := classifyHealthKey(group, view, observation.observedAt)
+		bucket, view := presentHealthKey(group, view, observation.observedAt)
 		item, err := mapCredentialRuntimeItem(
 			mask, row.ID, view, bucket, s.stats.Snapshot(row.ID, observation.observedAt), observation.observedAt,
 		)
