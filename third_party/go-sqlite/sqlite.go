@@ -168,6 +168,11 @@ type rows struct {
 	c       *conn     // connection
 	columns []string  // column names
 	pstmt   uintptr   // correspodning prepared statement
+
+	// stopInterrupt ends the context watcher that interrupts this statement.
+	// gpt-load patch: the last statement of a query is stepped in Next, after
+	// query has returned, so the watcher must live as long as the rows do.
+	stopInterrupt func()
 }
 
 func newRows(c *conn, pstmt uintptr, allocs []uintptr) (r *rows, err error) {
@@ -200,6 +205,11 @@ func newRows(c *conn, pstmt uintptr, allocs []uintptr) (r *rows, err error) {
 
 // Close closes the rows iterator.
 func (r *rows) Close() (err error) {
+	if r.stopInterrupt != nil {
+		r.stopInterrupt()
+		r.stopInterrupt = nil
+	}
+
 	// free all allocations made for this rows
 	for _, v := range r.allocs {
 		r.c.free(v)
@@ -684,11 +694,14 @@ func (s *stmt) query(ctx context.Context, args []driver.NamedValue) (r driver.Ro
 	}
 
 	// create rows
-	r, err = newRows(s.c, pstmt, allocs)
+	created, err := newRows(s.c, pstmt, allocs)
 	if err != nil {
 		return nil, err
 	}
-	return r, nil
+	if ctx != nil && ctx.Done() != nil {
+		created.stopInterrupt = interruptOnDone(ctx, s.c, nil)
+	}
+	return created, nil
 }
 
 type tx struct {

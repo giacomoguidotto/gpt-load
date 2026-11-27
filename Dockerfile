@@ -27,11 +27,13 @@ WORKDIR /build
 
 COPY go.mod go.sum ./
 COPY third_party/cpaembedded/go.mod third_party/cpaembedded/go.sum ./third_party/cpaembedded/
+COPY third_party/go-sqlite/go.mod third_party/go-sqlite/go.sum ./third_party/go-sqlite/
 RUN go mod download
 
 COPY *.go ./
 COPY internal ./internal
 COPY third_party/cpaembedded ./third_party/cpaembedded
+COPY third_party/go-sqlite ./third_party/go-sqlite
 COPY --from=web-builder /build/internal/webui/dist ./internal/webui/dist
 RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build \
     -ldflags "-s -w -X gpt-load/internal/platform/version.Version=${VERSION}" \

@@ -39,6 +39,16 @@ This facade is not connected to the existing HTTP data plane.
 
 The complete MIT License text is distributed in `LICENSES/MIT.txt`.
 
+## go-sqlite
+
+- Module: `github.com/glebarez/go-sqlite`
+- Version: `v1.22.0`, vendored in `third_party/go-sqlite`
+- Copyright: The Sqlite Authors
+- License: BSD 3-Clause License (`third_party/go-sqlite/LICENSE`)
+
+The vendored copy is modified so that cancelling a query's context also
+interrupts the statement while its rows are read.
+
 ## Inno Setup Simplified Chinese Messages
 
 - Source: `jrsoftware/issrc` `Files/Languages/ChineseSimplified.isl`

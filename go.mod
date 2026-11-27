@@ -153,3 +153,7 @@ require (
 replace github.com/router-for-me/CLIProxyAPI/v8/gptload-embedded => ./third_party/cpaembedded
 
 replace github.com/mark3labs/mcp-go => github.com/maximhq/mcp-go v0.0.0-20261102181017-b7da3bc145a1
+
+// Patched so a cancelled context also interrupts a statement while its rows
+// are read; see third_party/go-sqlite/sqlite.go (rows.stopInterrupt).
+replace github.com/glebarez/go-sqlite => ./third_party/go-sqlite
