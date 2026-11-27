@@ -9,6 +9,7 @@ import { protocolMessages as protocols } from '../protocols'
 import { jaJP as inspector } from './inspector'
 import { jaJP as home } from './home'
 import { jaJP as accessKeys } from './access-keys'
+import { jaJP as accessMap } from './access-map'
 import { jaJP as logs } from './logs'
 import { jaJP as usage } from './usage'
 import { jaJP as health } from './health'
@@ -40,6 +41,7 @@ export default {
   usage,
   health,
   accessKeys,
+  accessMap,
   groupWorkflows,
   parameterRules,
   credentialCards,
@@ -126,6 +128,7 @@ export default {
     groupDetail: { title: 'グループの詳細' },
     models: { title: 'モデル' },
     accessKeys: { title: 'アクセスキー' },
+    accessMap: { title: 'アクセスマップ' },
     usage: { title: '使用量' },
     logs: { title: 'リクエストログ' },
     health: { title: '稼働状況' },

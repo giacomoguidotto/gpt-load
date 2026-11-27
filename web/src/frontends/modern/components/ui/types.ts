@@ -34,3 +34,16 @@ export interface FieldProps {
   describedBy?: string
   disabled?: boolean
 }
+
+/**
+ * A connector drawn by AppLinkLayer. Each end names an element by its
+ * `data-link` attribute; the link leaves the right edge of `from` and enters
+ * the left edge of `to`.
+ */
+export interface AppLink {
+  id: string
+  from: string
+  to: string
+  active?: boolean
+  dimmed?: boolean
+}

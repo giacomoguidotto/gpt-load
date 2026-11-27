@@ -9,6 +9,7 @@ import { protocolMessages as protocols } from '../protocols'
 import { zhCN as inspector } from './inspector'
 import { zhCN as home } from './home'
 import { zhCN as accessKeys } from './access-keys'
+import { zhCN as accessMap } from './access-map'
 import { zhCN as logs } from './logs'
 import { zhCN as usage } from './usage'
 import { zhCN as health } from './health'
@@ -40,6 +41,7 @@ export default {
   usage,
   health,
   accessKeys,
+  accessMap,
   groupWorkflows,
   parameterRules,
   credentialCards,
@@ -122,6 +124,7 @@ export default {
     groupDetail: { title: '分组详情' },
     models: { title: '模型' },
     accessKeys: { title: '访问密钥' },
+    accessMap: { title: '访问地图' },
     usage: { title: '用量统计' },
     logs: { title: '请求日志' },
     health: { title: '运行健康' },

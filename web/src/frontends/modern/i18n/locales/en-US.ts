@@ -9,6 +9,7 @@ import { protocolMessages as protocols } from '../protocols'
 import { enUS as inspector } from './inspector'
 import { enUS as home } from './home'
 import { enUS as accessKeys } from './access-keys'
+import { enUS as accessMap } from './access-map'
 import { enUS as logs } from './logs'
 import { enUS as usage } from './usage'
 import { enUS as health } from './health'
@@ -40,6 +41,7 @@ export default {
   usage,
   health,
   accessKeys,
+  accessMap,
   groupWorkflows,
   parameterRules,
   credentialCards,
@@ -127,6 +129,7 @@ export default {
     groupDetail: { title: 'Group details' },
     models: { title: 'Models' },
     accessKeys: { title: 'Access keys' },
+    accessMap: { title: 'Access map' },
     usage: { title: 'Usage' },
     logs: { title: 'Request logs' },
     health: { title: 'Runtime health' },
