@@ -29,6 +29,7 @@ import HomeRouteTool from './HomeRouteTool.vue'
 import HomeSetupGuide from './HomeSetupGuide.vue'
 import HomeStatusBar from './HomeStatusBar.vue'
 import HomeTrend from './HomeTrend.vue'
+import HomeRunway from './HomeRunway.vue'
 import GatewayConnection from './GatewayConnection.vue'
 
 const { t, locale } = useI18n()
@@ -216,6 +217,7 @@ watch(
             :failed="statistics.isError.value"
             @retry="statistics.refetch()"
           />
+          <HomeRunway :groups="groupMap" />
           <HomeAccounts
             v-if="admin"
             :accounts="accounts.data.value?.items ?? []"

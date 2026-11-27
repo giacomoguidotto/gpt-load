@@ -98,6 +98,11 @@ function preventInactiveOrSelectionClick(event: MouseEvent): void {
   text-decoration: none;
   box-shadow: var(--modern-shadow-control);
   user-select: none;
+  transition:
+    background var(--modern-motion-fast) var(--modern-motion-ease-out),
+    border-color var(--modern-motion-fast) var(--modern-motion-ease-out),
+    box-shadow var(--modern-motion-fast) var(--modern-motion-ease-out),
+    transform var(--modern-motion-fast) var(--modern-motion-ease-spring);
 }
 .modern-button--selectable {
   -webkit-user-select: text;
@@ -108,6 +113,7 @@ function preventInactiveOrSelectionClick(event: MouseEvent): void {
   background: var(--modern-control-hover);
 }
 .modern-button:active:not(:disabled, [aria-disabled='true']) {
+  transform: scale(var(--modern-press-scale));
   background: var(--modern-control-pressed);
   box-shadow: none;
 }

@@ -282,6 +282,9 @@
   --modern-link-gutter: 120px;
   --modern-access-map-users: 320px;
   --modern-shadow-lift: 0 10px 30px rgb(0 0 0 / 10%);
+  --modern-shadow-panel: 0 1px 2px rgb(0 0 0 / 3%), 0 4px 16px rgb(0 0 0 / 3%);
+  --modern-press-scale: 0.97;
+  --modern-nav-nudge: 2px;
   --modern-motion-spin: 1s;
   --modern-motion-ease: ease;
   --modern-mascot-inverse: #f5f5f2;

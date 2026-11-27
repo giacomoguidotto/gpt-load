@@ -114,6 +114,13 @@ svg {
     transform: rotate(360deg);
   }
 }
+/* Shared entrance: fade in while rising into place. */
+@keyframes modern-rise {
+  from {
+    opacity: 0;
+    transform: translateY(var(--modern-motion-rise));
+  }
+}
 @keyframes modern-appear {
   from {
     opacity: 0;

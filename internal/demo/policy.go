@@ -78,6 +78,7 @@ var allowedRoutes = map[string]bool{
 	"POST /api/proxies/import":                                        true,
 	"GET /api/modern/groups":                                          true,
 	"GET /api/modern/groups/usage":                                    true,
+	"GET /api/modern/capacity":                                        true,
 	"GET /api/modern/access-keys":                                     true,
 	"GET /api/modern/credentials/options":                             true,
 	"GET /api/modern/groups/:group_id/credentials":                    true,
