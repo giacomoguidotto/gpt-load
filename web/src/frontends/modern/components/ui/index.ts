@@ -41,7 +41,10 @@ export { default as AppTextField } from './AppTextField.vue'
 export { default as AppTextArea } from './AppTextArea.vue'
 export { default as AppFileButton } from './AppFileButton.vue'
 export { default as AppTooltip } from './AppTooltip.vue'
+export { default as AppLinkLayer } from './AppLinkLayer.vue'
+export { default as AppPressable } from './AppPressable.vue'
 export type {
+  AppLink,
   ButtonVariant,
   ControlSize,
   FieldProps,

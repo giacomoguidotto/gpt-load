@@ -39,7 +39,7 @@ const amount = computed(() =>
   height: 100%;
   border-radius: inherit;
   background: var(--modern-status-success);
-  transition: width var(--modern-motion-fast) var(--modern-motion-ease);
+  transition: width var(--modern-motion-slow) var(--modern-motion-ease-out);
 }
 .modern-progress-bar--warning > span {
   background: var(--modern-status-warning);

@@ -6,6 +6,7 @@ import {
   House,
   KeyRound,
   Layers2,
+  Waypoints,
   ScrollText,
   Settings2,
 } from '@lucide/vue'
@@ -36,6 +37,14 @@ export const navigationItems = [
     path: pagePath('groups'),
     section: 'workspace',
     icon: Layers2,
+    adminOnly: false,
+  },
+  {
+    id: 'accessMap',
+    name: 'modern-access-map',
+    path: pagePath('access-map'),
+    section: 'workspace',
+    icon: Waypoints,
     adminOnly: false,
   },
   {
