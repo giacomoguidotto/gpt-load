@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"gorm.io/gorm"
+
 	"gpt-load/internal/platform/epochms"
 	"gpt-load/internal/storage/models"
 )
@@ -157,12 +159,7 @@ func (service *Service) deleteExpiredUsageJournals(
 		}
 
 		var requestIDs []string
-		result := service.db.WithContext(ctx).
-			Model(&models.UsageAggregationJournal{}).
-			Where("bucket_start_ms < ?", cutoffMS).
-			Order("bucket_start_ms ASC").
-			Order("request_id ASC").
-			Limit(retentionBatchSize).
+		result := expiredUsageJournalBatch(service.db.WithContext(ctx), cutoffMS).
 			Pluck("request_id", &requestIDs)
 		if result.Error != nil {
 			if ctx.Err() == nil {
@@ -187,6 +184,17 @@ func (service *Service) deleteExpiredUsageJournals(
 			return true
 		}
 	}
+}
+
+// expiredUsageJournalBatch selects one batch of journal rows older than the
+// cutoff. Naming both applied states lets the (applied, bucket_start_ms) index
+// serve the range; filtering on bucket_start_ms alone scanned and sorted the
+// whole journal on every sweep. Batch order does not matter because the cutoff
+// is fixed for the whole sweep.
+func expiredUsageJournalBatch(db *gorm.DB, cutoffMS int64) *gorm.DB {
+	return db.Model(&models.UsageAggregationJournal{}).
+		Where("applied IN ? AND bucket_start_ms < ?", []bool{false, true}, cutoffMS).
+		Limit(retentionBatchSize)
 }
 
 func (service *Service) recordRetentionDeleteFailure(now time.Time) {

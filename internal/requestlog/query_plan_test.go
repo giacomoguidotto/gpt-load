@@ -36,3 +36,26 @@ func TestAttemptFiltersAreNotCorrelatedPerRequestRow(t *testing.T) {
 		}
 	}
 }
+
+// The hourly journal sweep must seek the expired range through an index; a
+// full scan of millions of journal rows held SQLite's only connection for
+// seconds every hour even when nothing had expired.
+func TestUsageJournalSweepSeeksExpiredRangeByIndex(t *testing.T) {
+	db := openRequestLogQueryDB(t)
+	statement := db.ToSQL(func(tx *gorm.DB) *gorm.DB {
+		var ids []string
+		return expiredUsageJournalBatch(tx, 1_700_000_000_000).Pluck("request_id", &ids)
+	})
+
+	var plan []struct {
+		Detail string `gorm:"column:detail"`
+	}
+	if err := db.Raw("EXPLAIN QUERY PLAN " + statement).Scan(&plan).Error; err != nil {
+		t.Fatal(err)
+	}
+	for _, step := range plan {
+		if strings.HasPrefix(step.Detail, "SCAN") || strings.Contains(step.Detail, "TEMP B-TREE") {
+			t.Fatalf("journal sweep does not seek by index: %q", step.Detail)
+		}
+	}
+}
