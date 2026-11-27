@@ -6,6 +6,7 @@ export const zhCN = {
     retry: '重试',
     reset: '重置筛选',
     loadFailedHelp: '请检查网络连接后重试。',
+    serverFailedHelp: '服务器暂时无法读取数据，请稍后重试。',
     stale: '列表刷新失败，当前显示上次加载的数据。',
   },
   groups: {
@@ -117,6 +118,7 @@ export const enUS: typeof zhCN = {
     retry: 'Retry',
     reset: 'Reset filters',
     loadFailedHelp: 'Check your connection and try again.',
+    serverFailedHelp: 'The server could not read its data right now. Try again in a moment.',
     stale: 'Refresh failed. Showing previously loaded data.',
   },
   groups: {
@@ -239,6 +241,7 @@ export const jaJP: typeof zhCN = {
     retry: '再試行',
     reset: '絞り込みを解除',
     loadFailedHelp: '接続を確認して再試行してください。',
+    serverFailedHelp: 'サーバーが現在データを読み込めません。しばらくしてから再試行してください。',
     stale: '更新に失敗しました。前回のデータを表示しています。',
   },
   groups: {

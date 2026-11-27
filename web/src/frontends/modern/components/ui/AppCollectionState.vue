@@ -1,15 +1,36 @@
 <script setup lang="ts">
 import { LoaderCircle } from '@lucide/vue'
-import type { Component } from 'vue'
+import { onBeforeUnmount, ref, watch, type Component } from 'vue'
+import { useI18n } from 'vue-i18n'
+import AppButton from './AppButton.vue'
 import AppIcon from './AppIcon.vue'
 
-defineProps<{
+// A load that outlives this delay is no longer normal latency: say so, so a
+// stalled server is not mistaken for a page that is still working.
+const slowLoadingDelayMS = 8000
+
+const props = defineProps<{
   title: string
   description?: string
   icon?: Component
   loading?: boolean
   error?: boolean
+  onRetry?: () => unknown
 }>()
+const { t } = useI18n()
+const slow = ref(false)
+let slowTimer: ReturnType<typeof setTimeout> | undefined
+
+watch(
+  () => props.loading,
+  (loading) => {
+    clearTimeout(slowTimer)
+    slow.value = false
+    if (loading) slowTimer = setTimeout(() => (slow.value = true), slowLoadingDelayMS)
+  },
+  { immediate: true },
+)
+onBeforeUnmount(() => clearTimeout(slowTimer))
 </script>
 
 <template>
@@ -24,7 +45,11 @@ defineProps<{
     </span>
     <strong>{{ title }}</strong>
     <p v-if="description">{{ description }}</p>
+    <p v-if="loading && slow">{{ t('ui.loadingSlow') }}</p>
     <div v-if="$slots.default" class="modern-collection-state-actions"><slot /></div>
+    <div v-else-if="loading && slow && onRetry" class="modern-collection-state-actions">
+      <AppButton @click="onRetry()">{{ t('ui.retry') }}</AppButton>
+    </div>
   </div>
 </template>
 

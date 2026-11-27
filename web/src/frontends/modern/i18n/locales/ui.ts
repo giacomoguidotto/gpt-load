@@ -18,6 +18,7 @@ export const zhCN = {
   clearSearch: '清除搜索',
   edit: '编辑',
   loading: '正在加载…',
+  loadingSlow: '加载时间比平时长，服务器可能正忙。可以继续等待或重试。',
   noRules: '暂无规则',
   channelTooltip: { channel: '渠道：{name}', group: '分组：{name}' },
   filters: {
@@ -87,6 +88,7 @@ export const enUS: typeof zhCN = {
   clearSearch: 'Clear search',
   edit: 'Edit',
   loading: 'Loading…',
+  loadingSlow: 'This is taking longer than usual. The server may be busy; keep waiting or retry.',
   noRules: 'No rules',
   channelTooltip: { channel: 'Channel: {name}', group: 'Group: {name}' },
   filters: {
@@ -157,6 +159,8 @@ export const jaJP: typeof zhCN = {
   clearSearch: '検索をクリア',
   edit: '編集',
   loading: '読み込み中…',
+  loadingSlow:
+    '通常より時間がかかっています。サーバーが混雑している可能性があります。待つか再試行してください。',
   noRules: 'ルールはありません',
   channelTooltip: { channel: 'チャネル：{name}', group: 'グループ：{name}' },
   filters: {
