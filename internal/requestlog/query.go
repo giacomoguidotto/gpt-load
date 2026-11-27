@@ -112,7 +112,6 @@ func (service *Service) List(ctx context.Context, input ListQuery) (Page, error)
 	)
 	query = applyNullableRange(query, "output_tokens", input.OutputTokensMin, input.OutputTokensMax)
 	query = applyNullableRange(query, "(estimated_cost_nano_usd + decision_cost_nano_usd + audit_cost_nano_usd)", input.CostMinNanoUSD, input.CostMaxNanoUSD)
-	query = applyAttemptFilters(query, input)
 	if input.Cursor != nil {
 		query = query.Where(
 			"completed_at_ms < ? OR (completed_at_ms = ? AND id < ?)",
@@ -129,7 +128,8 @@ func (service *Service) List(ctx context.Context, input ListQuery) (Page, error)
 			pageSize = defaultListLimit
 		}
 		var totalItems int64
-		if err := query.Count(&totalItems).Error; err != nil {
+		countQuery := applyAttemptFilters(query.Session(&gorm.Session{}), input, false)
+		if err := countQuery.Count(&totalItems).Error; err != nil {
 			return Page{}, fmt.Errorf("count request logs: %w", err)
 		}
 		page.Pagination = &Pagination{
@@ -138,9 +138,10 @@ func (service *Service) List(ctx context.Context, input ListQuery) (Page, error)
 			TotalItems: totalItems,
 			TotalPages: requestLogTotalPages(totalItems, pageSize),
 		}
-		query = query.Offset((input.Page - 1) * pageSize).Limit(pageSize)
+		query = applyAttemptFilters(query, input, true).
+			Offset((input.Page - 1) * pageSize).Limit(pageSize)
 	} else {
-		query = query.Limit(limit + 1)
+		query = applyAttemptFilters(query, input, true).Limit(limit + 1)
 	}
 	query = query.Order("completed_at_ms DESC").Order("id DESC")
 
@@ -201,7 +202,10 @@ func applyNullableRange[T int | int64](
 	return query
 }
 
-func applyAttemptFilters(query *gorm.DB, input ListQuery) *gorm.DB {
+// applyAttemptFilters keeps requests with an attempt matching every attempt
+// filter. orderedPage is set for a query that returns a sorted page rather
+// than a count.
+func applyAttemptFilters(query *gorm.DB, input ListQuery, orderedPage bool) *gorm.DB {
 	conditions := make([]string, 0, 8)
 	arguments := make([]any, 0, 8)
 	if input.GroupID != nil {
@@ -238,7 +242,16 @@ func applyAttemptFilters(query *gorm.DB, input ListQuery) *gorm.DB {
 	// An uncorrelated IN set is built once from the attempt filter's index. A
 	// correlated EXISTS made SQLite seek the filter index for every request
 	// row, which never finished on millions of rows.
-	statement := `request_logs.id IN (
+	idColumn := "request_logs.id"
+	if orderedPage && query.Dialector != nil && query.Dialector.Name() == "sqlite" {
+		// For a page, SQLite would otherwise fetch every matching row by id
+		// and sort them all (31 s for 125k matches). The unary plus stops it
+		// using the id index, so it walks the completed_at_ms index in page
+		// order and stops after one page. A count keeps the id lookup, which
+		// is the cheaper way to count.
+		idColumn = "+request_logs.id"
+	}
+	statement := idColumn + ` IN (
 		SELECT attempt.request_id FROM request_log_attempts AS attempt
 		WHERE ` + strings.Join(conditions, " AND ") + `
 	)`

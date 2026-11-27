@@ -19,7 +19,7 @@ func TestAttemptFiltersAreNotCorrelatedPerRequestRow(t *testing.T) {
 		var total int64
 		return applyAttemptFilters(tx.Model(&models.RequestLog{}), ListQuery{
 			GroupID: &groupID, CredentialID: &credentialID,
-		}).Count(&total)
+		}, false).Count(&total)
 	})
 
 	var plan []struct {
@@ -56,6 +56,30 @@ func TestUsageJournalSweepSeeksExpiredRangeByIndex(t *testing.T) {
 	for _, step := range plan {
 		if strings.HasPrefix(step.Detail, "SCAN") || strings.Contains(step.Detail, "TEMP B-TREE") {
 			t.Fatalf("journal sweep does not seek by index: %q", step.Detail)
+		}
+	}
+}
+
+// A filtered page must be read in page order and stop after one page; sorting
+// every matching request first took 31 s for one busy group.
+func TestAttemptFilteredPageWalksCompletionOrder(t *testing.T) {
+	db := openRequestLogQueryDB(t)
+	groupID := uint(12)
+	statement := db.ToSQL(func(tx *gorm.DB) *gorm.DB {
+		var rows []models.RequestLog
+		return applyAttemptFilters(tx.Model(&models.RequestLog{}), ListQuery{GroupID: &groupID}, true).
+			Order("completed_at_ms DESC").Order("id DESC").Limit(20).Find(&rows)
+	})
+
+	var plan []struct {
+		Detail string `gorm:"column:detail"`
+	}
+	if err := db.Raw("EXPLAIN QUERY PLAN " + statement).Scan(&plan).Error; err != nil {
+		t.Fatal(err)
+	}
+	for _, step := range plan {
+		if strings.Contains(step.Detail, "TEMP B-TREE FOR ORDER BY") {
+			t.Fatalf("filtered page sorts every match: %q", step.Detail)
 		}
 	}
 }
