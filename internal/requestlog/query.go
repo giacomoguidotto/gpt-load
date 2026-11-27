@@ -235,10 +235,12 @@ func applyAttemptFilters(query *gorm.DB, input ListQuery) *gorm.DB {
 	if len(conditions) == 0 {
 		return query
 	}
-	statement := `EXISTS (
-		SELECT 1 FROM request_log_attempts AS attempt
-		WHERE attempt.request_id = request_logs.id AND ` +
-		strings.Join(conditions, " AND ") + `
+	// An uncorrelated IN set is built once from the attempt filter's index. A
+	// correlated EXISTS made SQLite seek the filter index for every request
+	// row, which never finished on millions of rows.
+	statement := `request_logs.id IN (
+		SELECT attempt.request_id FROM request_log_attempts AS attempt
+		WHERE ` + strings.Join(conditions, " AND ") + `
 	)`
 	return query.Where(statement, arguments...)
 }
