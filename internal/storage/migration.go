@@ -240,10 +240,17 @@ func applyMigrationsLocked(db *gorm.DB, entries []migration, useMigrationTransac
 		}
 	}
 
-	for _, entry := range entries[len(applied):] {
+	pending := entries[len(applied):]
+	for _, entry := range pending {
 		if err := applyMigration(db, entry, useMigrationTransactions); err != nil {
 			return err
 		}
+	}
+	// A full foreign_key_check scans every table; on a multi-gigabyte request
+	// log it holds SQLite's only connection for minutes. Ordinary writes keep
+	// foreign keys enforced, so only a boot that changed the schema checks.
+	if len(pending) == 0 {
+		return nil
 	}
 	return validateMigrationForeignKeys(db)
 }
