@@ -581,6 +581,9 @@ useMessageSource(() =>
   width: 100%;
   min-width: 0;
   padding: 0 var(--modern-content-inset);
+  /* Each page fades in as it mounts (the element is keyed by route path).
+     Opacity only: a transform here would trap fixed-position descendants. */
+  animation: modern-appear var(--modern-motion-medium) var(--modern-motion-ease-out) both;
 }
 .modern-content:focus {
   outline: none;

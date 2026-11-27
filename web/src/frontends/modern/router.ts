@@ -28,15 +28,17 @@ export function createModernRouter(
                 ? () => import('./features/settings/SettingsView.vue')
                 : item.id === 'groups'
                   ? () => import('./features/groups/GroupsView.vue')
-                  : item.id === 'accessKeys'
-                    ? () => import('./features/access-keys/AccessKeysView.vue')
-                    : item.id === 'logs'
-                      ? () => import('./features/logs/LogsView.vue')
-                      : item.id === 'usage'
-                        ? () => import('./features/usage/UsageView.vue')
-                        : item.id === 'health'
-                          ? () => import('./features/health/HealthView.vue')
-                          : () => import('./features/models/ModelsView.vue'),
+                  : item.id === 'accessMap'
+                    ? () => import('./features/access-map/AccessMapView.vue')
+                    : item.id === 'accessKeys'
+                      ? () => import('./features/access-keys/AccessKeysView.vue')
+                      : item.id === 'logs'
+                        ? () => import('./features/logs/LogsView.vue')
+                        : item.id === 'usage'
+                          ? () => import('./features/usage/UsageView.vue')
+                          : item.id === 'health'
+                            ? () => import('./features/health/HealthView.vue')
+                            : () => import('./features/models/ModelsView.vue'),
         meta: { requiresAuth: true, adminOnly: item.adminOnly },
       })),
       {

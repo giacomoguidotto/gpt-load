@@ -57,6 +57,7 @@ import {
   AppTextField,
 } from '@modern/components/ui'
 import { useApiClient } from '@shared/http/client-context'
+import { ApiError } from '@shared/http/errors'
 import GroupListRow from './GroupListRow.vue'
 import GroupCreatePanel from './GroupCreatePanel.vue'
 import { getGroupChannels, type GroupCreateResult } from '@modern/api/group-create'
@@ -970,11 +971,18 @@ useMessageSource(() =>
         "
         :title="t('collection.loading')"
         loading
+        :on-retry="query.isPending.value ? () => query.refetch({ cancelRefetch: true }) : undefined"
       />
       <AppCollectionState
         v-else-if="!data"
         :title="t('groups.loadFailed')"
-        :description="t('collection.loadFailedHelp')"
+        :description="
+          t(
+            query.error.value instanceof ApiError && query.error.value.status >= 500
+              ? 'collection.serverFailedHelp'
+              : 'collection.loadFailedHelp',
+          )
+        "
         :icon="TriangleAlert"
         error
         ><AppButton @click="query.refetch()">{{
@@ -1067,9 +1075,10 @@ useMessageSource(() =>
 <style scoped>
 .modern-groups-workspace {
   --modern-group-list-width: calc(
-    1024px + var(--modern-inline-number-width) + var(--modern-space-4)
+    1052px + var(--modern-inline-number-width) + var(--modern-space-4)
   );
-  --modern-group-action-columns: 36px repeat(2, var(--modern-inline-number-width));
+  /* Wide enough for the "Enabled" header so it does not run into "Priority". */
+  --modern-group-action-columns: 64px repeat(2, var(--modern-inline-number-width));
   --modern-group-columns: minmax(260px, 2fr) minmax(168px, 1fr) 90px 114px 140px max-content;
   display: flex;
   flex: 1;
