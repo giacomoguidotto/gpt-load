@@ -479,10 +479,11 @@ async function runAccountBatch(
           queuedSync.value.delete(row.id)
           await syncQuota(row)
         }
-      } catch {
+      } catch (cause) {
         if (controller.signal.aborted) return
         report.failed.push(row)
-        cardErrors.value.set(row.id, t('credentialCards.actionFailed'))
+        if (action === 'download') cardErrors.value.set(row.id, t('credentialCards.actionFailed'))
+        else syncFailed(row, cause)
       }
       if (controller.signal.aborted) return
       report.completed++
@@ -536,6 +537,19 @@ async function startBatchTest(
       testCredential(client, groupID, id, selected.protocol, selected.model, signal),
     retry,
   )
+}
+// A failed sync can change the account's state on the server (for example a
+// rejected sign-in), so reload the list and name the cause the server gave.
+function syncFailed(row: CredentialRow, cause: unknown): void {
+  cardErrors.value.set(
+    row.id,
+    t(
+      cause instanceof ApiError && cause.code === 'CREDENTIAL_REAUTHORIZATION_REQUIRED'
+        ? 'credentialCards.signInAgain'
+        : 'credentialCards.actionFailed',
+    ),
+  )
+  void cache.invalidateQueries({ queryKey: groupCredentialsKey(props.group.id) })
 }
 async function syncQuota(row: CredentialRow): Promise<void> {
   const previous = syncSuccessTimers.get(row.id)
@@ -845,9 +859,8 @@ async function action(row: CredentialRow, value: string): Promise<void> {
     try {
       await syncQuota(row)
       if (!controller.signal.aborted) emit('changed')
-    } catch {
-      if (!controller.signal.aborted)
-        cardErrors.value.set(row.id, t('credentialCards.actionFailed'))
+    } catch (cause) {
+      if (!controller.signal.aborted) syncFailed(row, cause)
     }
     return
   }
@@ -1514,6 +1527,9 @@ defineExpose({ refresh })
 }
 .modern-credential-cards--subscriptions {
   grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--modern-account-card-min)), 1fr));
+  /* Every account card takes the height of the tallest one, so rows line up. */
+  grid-auto-rows: 1fr;
+  align-items: stretch;
 }
 @container modern-credentials (max-width: 420px) {
   .modern-credentials-toolbar {
