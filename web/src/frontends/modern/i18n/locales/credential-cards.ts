@@ -96,6 +96,7 @@ export const zhCN = {
   resetUnknown: '重置结果暂未确认。再次确认会继续查询同一次操作，不会重复使用额度券。',
   resetPreparationFailed: '重置准备失败，尚未使用重置卡，请稍后重试',
   actionFailed: '操作失败，请稍后重试。',
+  signInAgain: '此账号的登录已失效，请重新登录。',
   lastFailure: '最近失败原因',
   recovery: '恢复方式',
   authorization: '账号授权',
@@ -251,6 +252,7 @@ export const enUS: typeof zhCN = {
   resetPreparationFailed:
     'Reset preparation failed; no reset credit was consumed. Please try again later',
   actionFailed: 'Action failed. Please retry.',
+  signInAgain: 'The provider rejected this account’s sign-in. Sign in again.',
   lastFailure: 'Last failure',
   recovery: 'Recovery',
   authorization: 'Account authorization',
@@ -411,6 +413,7 @@ export const jaJP: typeof zhCN = {
   resetPreparationFailed:
     'リセットの準備に失敗しました。リセットカードは消費されていません。しばらくしてから再試行してください',
   actionFailed: '操作に失敗しました。再試行してください。',
+  signInAgain: 'このアカウントのログインが無効になりました。再ログインしてください。',
   lastFailure: '最終失敗の原因',
   recovery: '復旧方法',
   authorization: 'アカウント認証',

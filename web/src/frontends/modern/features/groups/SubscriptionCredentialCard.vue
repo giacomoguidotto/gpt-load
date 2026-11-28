@@ -464,7 +464,9 @@ useLoadingActivity(() => Boolean(props.pending))
   color: var(--modern-warning);
 }
 .modern-subscription-card-body {
-  display: grid;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
   gap: var(--modern-space-3);
   padding: var(--modern-space-1) var(--modern-credential-card-inset) var(--modern-space-2);
   min-width: 0;
@@ -494,6 +496,7 @@ useLoadingActivity(() => Boolean(props.pending))
 }
 .modern-subscription-card-notices {
   display: flex;
+  margin-top: auto;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--modern-space-1) var(--modern-space-2);
