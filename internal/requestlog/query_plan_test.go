@@ -83,3 +83,36 @@ func TestAttemptFilteredPageWalksCompletionOrder(t *testing.T) {
 		}
 	}
 }
+
+// Dashboard reads must seek the window through the status index instead of
+// walking every request in the window.
+func TestDashboardReadsSeekByStatus(t *testing.T) {
+	db := openRequestLogQueryDB(t)
+	window := DashboardQuery{FromMS: 1, ToMS: 2}
+	for name, build := range map[string]func(tx *gorm.DB) *gorm.DB{
+		"latency": func(tx *gorm.DB) *gorm.DB {
+			var rows []latencyRow
+			return dashboardWindow(tx, window).Where("status = ?", "success").
+				Order("completed_at_ms DESC").Limit(10).
+				Select("client_model, duration_ms, first_response_ms").Scan(&rows)
+		},
+		"failures": func(tx *gorm.DB) *gorm.DB {
+			var rows []failureRow
+			return dashboardWindow(tx, window).Where("status IN ?", dashboardFailureStatuses).
+				Order("completed_at_ms DESC").Limit(10).Select("status, error_code").Scan(&rows)
+		},
+	} {
+		statement := db.ToSQL(build)
+		var plan []struct {
+			Detail string `gorm:"column:detail"`
+		}
+		if err := db.Raw("EXPLAIN QUERY PLAN " + statement).Scan(&plan).Error; err != nil {
+			t.Fatal(err)
+		}
+		for _, step := range plan {
+			if strings.HasPrefix(step.Detail, "SCAN request_logs") {
+				t.Fatalf("%s query scans request_logs: %q", name, step.Detail)
+			}
+		}
+	}
+}
