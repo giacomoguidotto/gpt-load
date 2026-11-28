@@ -1014,8 +1014,9 @@ useMessageSource(() =>
       </AppCollectionState>
       <template v-else>
         <GroupListRow
-          v-for="group in visible"
+          v-for="(group, rowIndex) in visible"
           :key="group.id + ':' + rowRevision"
+          :index="rowIndex"
           :group="group"
           :mobile="isMobile"
           :read-only="readOnly"

@@ -43,6 +43,7 @@ export { default as AppFileButton } from './AppFileButton.vue'
 export { default as AppTooltip } from './AppTooltip.vue'
 export { default as AppLinkLayer } from './AppLinkLayer.vue'
 export { default as AppPressable } from './AppPressable.vue'
+export { default as AppStackedBars } from './AppStackedBars.vue'
 export type {
   AppLink,
   ButtonVariant,

@@ -25,6 +25,8 @@ import type { SemanticTone } from '@modern/components/ui/types'
 import { useApiClient } from '@shared/http/client-context'
 
 const props = defineProps<{
+  /** Position in the list, used to stagger the entrance animation. */
+  index?: number
   mobile?: boolean
   readOnly?: boolean
   group: GroupRow
@@ -200,7 +202,12 @@ const lastActive = computed(() =>
       </div>
     </div>
   </RouterLink>
-  <article v-show="!mobile" class="modern-group-entry" :aria-labelledby="`${id}-name`">
+  <article
+    v-show="!mobile"
+    class="modern-group-entry"
+    :style="{ '--i': index ?? 0 }"
+    :aria-labelledby="`${id}-name`"
+  >
     <div class="modern-group-row">
       <div class="modern-group-identity">
         <AppChannelIcon
@@ -461,6 +468,8 @@ const lastActive = computed(() =>
 .modern-group-entry {
   min-width: var(--modern-group-list-width);
   border-bottom: var(--modern-line-width) solid var(--modern-border);
+  animation: modern-rise var(--modern-motion-slow) var(--modern-motion-ease-out) both;
+  animation-delay: calc(var(--i, 0) * var(--modern-motion-stagger));
 }
 .modern-group-row {
   text-align: left;
@@ -469,6 +478,9 @@ const lastActive = computed(() =>
   align-items: center;
   gap: var(--modern-space-4);
   padding: var(--modern-space-4) var(--modern-space-3);
+}
+.modern-group-row {
+  transition: background var(--modern-motion-medium) var(--modern-motion-ease-out);
 }
 .modern-group-row:hover {
   background: var(--modern-subtle);

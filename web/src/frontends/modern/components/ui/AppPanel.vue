@@ -40,11 +40,14 @@ const titleId = useId()
   border: var(--modern-line-width) solid var(--modern-border);
   border-radius: var(--modern-radius-panel);
   background: var(--modern-surface);
+  box-shadow: var(--modern-shadow-panel);
+  animation: modern-rise var(--modern-motion-slow) var(--modern-motion-ease-out) both;
 }
 .modern-panel--plain {
   border: 0;
   border-radius: 0;
   background: transparent;
+  box-shadow: none;
 }
 .modern-panel-header {
   display: flex;
