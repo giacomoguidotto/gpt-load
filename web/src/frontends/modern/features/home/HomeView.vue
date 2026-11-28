@@ -3,10 +3,10 @@ import { useMobileLayout } from '@modern/app/use-mobile-layout'
 import { DialogRoot } from 'reka-ui'
 import { Cable, Route as RouteIcon } from '@lucide/vue'
 import { useQuery } from '@tanstack/vue-query'
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
-import { getHome, getHomeAccounts, getHomeStatistics, homeStatisticsKey } from '@modern/api/home'
+import { getHome } from '@modern/api/home'
 import { getGroupWorkspace, groupQueryKey } from '@modern/api/groups'
 import { getHealth } from '@modern/api/health'
 import { getLogAccessKeys } from '@modern/api/logs'
@@ -23,13 +23,10 @@ import {
 import RouteInspector from '@modern/features/inspector/RouteInspector.vue'
 import { compareHealthIssues, healthIssues } from '@modern/features/health/health-display'
 import HomeAccessKey from './HomeAccessKey.vue'
-import HomeAccounts from './HomeAccounts.vue'
 import HomeAttention from './HomeAttention.vue'
-import HomeRouteTool from './HomeRouteTool.vue'
 import HomeSetupGuide from './HomeSetupGuide.vue'
 import HomeStatusBar from './HomeStatusBar.vue'
-import HomeTrend from './HomeTrend.vue'
-import HomeRunway from './HomeRunway.vue'
+import HomeDashboard from './HomeDashboard.vue'
 import GatewayConnection from './GatewayConnection.vue'
 
 const { t, locale } = useI18n()
@@ -43,7 +40,6 @@ function closeMobileTool(): void {
   inspectorOpen.value = false
 }
 const inspector = ref<InstanceType<typeof RouteInspector>>()
-const inspectorSection = ref<HTMLElement>()
 const admin = computed(() => session.state.principalType === 'admin')
 const baseQuery = useQuery({
   queryKey: ['modern', 'home', 'base'],
@@ -61,15 +57,7 @@ const keys = useQuery({
   queryFn: ({ signal }) => getLogAccessKeys(client, signal),
   enabled: admin,
 })
-const accounts = useQuery({
-  queryKey: ['modern', 'home', 'accounts'],
-  queryFn: ({ signal }) => getHomeAccounts(client, signal),
-  enabled: admin,
-})
-const statistics = useQuery({
-  queryKey: homeStatisticsKey,
-  queryFn: ({ signal }) => getHomeStatistics(client, signal),
-})
+const dashboard = ref<InstanceType<typeof HomeDashboard>>()
 const health = useQuery({
   queryKey: ['modern', 'health'],
   queryFn: ({ signal }) => getHealth(client, signal),
@@ -107,48 +95,31 @@ async function refreshHealth(): Promise<void> {
 async function refresh(): Promise<void> {
   await Promise.all([
     baseQuery.refetch(),
-    statistics.refetch(),
-    ...(admin.value
-      ? [refreshOptions(), accounts.refetch(), health.refetch(), inspector.value?.refresh()]
-      : []),
+    dashboard.value?.refresh(),
+    ...(admin.value ? [refreshOptions(), health.refetch(), inspector.value?.refresh()] : []),
   ])
 }
 usePageRefresh({
   refresh,
   pending: () =>
     baseQuery.isFetching.value ||
-    statistics.isFetching.value ||
+    Boolean(dashboard.value?.pending) ||
     groups.isFetching.value ||
     keys.isFetching.value ||
-    accounts.isFetching.value ||
     health.isFetching.value ||
     Boolean(inspector.value?.pending),
   updatedAt: () =>
     Math.max(
       base.value?.observedAt ?? 0,
-      statistics.data.value?.observedAt ?? 0,
-      accounts.data.value?.observedAt ?? 0,
+      dashboard.value?.updatedAt ?? 0,
       health.data.value?.observedAt ?? 0,
-      inspector.value?.updatedAt ?? 0,
     ) || undefined,
 })
-const sectionReady = computed(
-  () =>
-    admin.value &&
-    Boolean(base.value) &&
-    !groups.isPending.value &&
-    !keys.isPending.value &&
-    !accounts.isPending.value,
-)
+// A link to #route-inspector opens the inspector dialog.
 watch(
-  [() => route.hash, sectionReady],
-  async ([hash, ready]) => {
-    if (hash !== '#route-inspector' || !ready) return
-    inspectorOpen.value = true
-    await nextTick()
-    if (route.hash !== hash || !sectionReady.value) return
-    inspectorSection.value?.scrollIntoView({ block: 'start' })
-    inspectorSection.value?.focus({ preventScroll: true })
+  () => route.hash,
+  (hash) => {
+    if (hash === '#route-inspector' && admin.value) inspectorOpen.value = true
   },
   { immediate: true },
 )
@@ -183,17 +154,47 @@ watch(
         :groups="groups.data.value.items"
         :key-count="keys.data.value.length"
       />
-      <div v-if="!isMobile" class="modern-home-columns">
-        <div class="modern-home-main">
-          <GatewayConnection :keys="base.keys" :admin="admin" />
-          <div
-            v-if="admin"
-            id="route-inspector"
-            ref="inspectorSection"
-            class="modern-home-inspector"
-            tabindex="-1"
-          >
-            <HomeRouteTool v-model:open="inspectorOpen" :access-keys="keys.data.value">
+      <div class="modern-home-tools">
+        <AppButton :icon="Cable" size="sm" @click="connectionOpen = true">{{
+          t('home.dashboard.connect')
+        }}</AppButton>
+        <AppButton v-if="admin" :icon="RouteIcon" size="sm" @click="inspectorOpen = true">{{
+          t('home.dashboard.inspect')
+        }}</AppButton>
+      </div>
+      <HomeAttention
+        v-if="admin && (attention || health.isError.value || groups.isError.value)"
+        :issues="attentionIssues"
+        :groups="groupMap"
+        :failed="health.isError.value || groups.isError.value"
+        @retry="refreshHealth"
+      />
+      <HomeAccessKey v-if="!admin && base.currentKey" :row="base.currentKey" />
+      <HomeDashboard ref="dashboard" :groups="groupMap" :keys="base.keys" :admin="admin" />
+      <DialogRoot
+        :open="connectionOpen || inspectorOpen"
+        @update:open="
+          (open) => {
+            if (!open) {
+              connectionOpen = false
+              inspectorOpen = false
+            }
+          }
+        "
+      >
+        <AppDialogContent
+          placement="editor"
+          :title="connectionOpen ? t('home.connection') : t('pages.inspector.title')"
+          :description="connectionOpen ? t('home.connection') : t('pages.inspector.title')"
+        >
+          <AppDialogHeader
+            :title="connectionOpen ? t('home.connection') : t('pages.inspector.title')"
+            :close-label="t('ui.close')"
+            @close="closeMobileTool"
+          />
+          <div class="modern-home-mobile-tool-body">
+            <GatewayConnection v-if="connectionOpen" :keys="base.keys" :admin="admin" />
+            <template v-else-if="admin">
               <p v-if="emptyProject" class="modern-home-inspector-empty">
                 {{ t('home.setup.inspectorLater') }}
               </p>
@@ -208,103 +209,10 @@ watch(
                 :keys-failed="keys.isError.value"
                 @retry-options="refreshOptions"
               />
-            </HomeRouteTool>
+            </template>
           </div>
-        </div>
-        <div class="modern-home-side">
-          <HomeTrend
-            :report="statistics.data.value"
-            :failed="statistics.isError.value"
-            @retry="statistics.refetch()"
-          />
-          <HomeRunway :groups="groupMap" />
-          <HomeAccounts
-            v-if="admin"
-            :accounts="accounts.data.value?.items ?? []"
-            :groups="groupMap"
-            :failed="accounts.isError.value"
-            :loading="accounts.isPending.value"
-            @retry="accounts.refetch()"
-          />
-          <div v-if="admin" class="modern-home-attention-section">
-            <HomeAttention
-              :issues="attentionIssues"
-              :groups="groupMap"
-              :failed="health.isError.value || groups.isError.value"
-              @retry="refreshHealth"
-            />
-          </div>
-          <HomeAccessKey v-if="!admin && base.currentKey" :row="base.currentKey" />
-        </div>
-      </div>
-      <div v-else class="modern-home-mobile">
-        <HomeTrend
-          :report="statistics.data.value"
-          :failed="statistics.isError.value"
-          @retry="statistics.refetch()"
-        />
-        <div class="modern-home-mobile-tools">
-          <AppButton :icon="Cable" @click="connectionOpen = true">{{
-            t('home.connection')
-          }}</AppButton>
-          <AppButton v-if="admin" :icon="RouteIcon" @click="inspectorOpen = true">{{
-            t('pages.inspector.title')
-          }}</AppButton>
-        </div>
-        <HomeAccessKey v-if="!admin && base.currentKey" :row="base.currentKey" />
-        <HomeAttention
-          v-if="admin && (attention || health.isError.value || groups.isError.value)"
-          :issues="attentionIssues"
-          :groups="groupMap"
-          :failed="health.isError.value || groups.isError.value"
-          @retry="refreshHealth"
-        />
-        <HomeAccounts
-          v-if="admin && (accounts.data.value?.items.length || accounts.isError.value)"
-          :accounts="accounts.data.value?.items ?? []"
-          :groups="groupMap"
-          :failed="accounts.isError.value"
-          :loading="accounts.isPending.value"
-          @retry="accounts.refetch()"
-        />
-        <DialogRoot
-          :open="connectionOpen || inspectorOpen"
-          @update:open="
-            (open) => {
-              if (!open) {
-                connectionOpen = false
-                inspectorOpen = false
-              }
-            }
-          "
-        >
-          <AppDialogContent
-            placement="editor"
-            :title="connectionOpen ? t('home.connection') : t('pages.inspector.title')"
-            :description="connectionOpen ? t('home.connection') : t('pages.inspector.title')"
-          >
-            <AppDialogHeader
-              :title="connectionOpen ? t('home.connection') : t('pages.inspector.title')"
-              :close-label="t('ui.close')"
-              @close="closeMobileTool"
-            />
-            <div class="modern-home-mobile-tool-body">
-              <GatewayConnection v-if="connectionOpen" :keys="base.keys" :admin="admin" />
-              <RouteInspector
-                v-else-if="admin"
-                ref="inspector"
-                :groups="groups.data.value"
-                :groups-loading="groups.isFetching.value"
-                :groups-failed="groups.isError.value"
-                :access-keys="keys.data.value"
-                :keys-loading="keys.isFetching.value"
-                :keys-failed="keys.isError.value"
-                @retry-options="refreshOptions"
-              />
-            </div>
-          </AppDialogContent>
-        </DialogRoot>
-      </div>
+        </AppDialogContent>
+      </DialogRoot>
     </template>
   </div>
 </template>
@@ -347,40 +255,13 @@ watch(
   align-items: center;
   gap: var(--modern-space-3);
 }
-.modern-home-columns {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) var(--modern-home-side);
-  align-items: start;
-  gap: var(--modern-page-gap);
-}
-.modern-home-main,
-.modern-home-side {
-  display: grid;
-  align-content: start;
-  min-width: 0;
-  gap: var(--modern-page-gap);
-}
-.modern-home-inspector,
-.modern-home-attention-section {
-  min-width: 0;
-  scroll-margin-top: var(--modern-space-5);
+.modern-home-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--modern-space-2);
 }
 .modern-home-inspector-empty {
   color: var(--modern-muted);
   font-size: var(--modern-font-size-secondary);
-}
-@media (max-width: 1150px) {
-  .modern-home-columns {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .modern-home-side {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    align-items: start;
-  }
-}
-@media (max-width: 760px) {
-  .modern-home-side {
-    grid-template-columns: minmax(0, 1fr);
-  }
 }
 </style>
